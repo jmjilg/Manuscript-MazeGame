@@ -9,6 +9,7 @@ using namespace std;
 1 : 길
 2 : 시작점
 3 : 도착점
+4 : 폭탄
 */
 struct _tagPoint
 {
@@ -59,6 +60,9 @@ void Output(char Maze[21][21], PPOINT pPlayerPos)
 	{
 		for (int j = 0; j < 20; ++j)
 		{
+			if (Maze[i][j] == '4')
+				cout << "♨";
+
 			if (pPlayerPos->x == j && pPlayerPos->y == i)
 				cout << "☆";
 
@@ -84,7 +88,8 @@ void MoveUp(char Maze[21][21], PPOINT pPlayerPos)
 	if (pPlayerPos->y - 1 >= 0) 
 	{
 		// 벽인지 체크한다.
-		if (Maze[pPlayerPos->y - 1][pPlayerPos->x] != '0')
+		if (Maze[pPlayerPos->y - 1][pPlayerPos->x] != '0' &&
+			Maze[pPlayerPos->y - 1][pPlayerPos->x] != '4')
 		{
 			--pPlayerPos->y;
 		}
@@ -96,7 +101,8 @@ void MoveDown(char Maze[21][21], PPOINT pPlayerPos)
 	if (pPlayerPos->y + 1 < 20)
 	{
 		// 벽인지 체크한다.
-		if (Maze[pPlayerPos->y + 1][pPlayerPos->x] != '0')
+		if (Maze[pPlayerPos->y + 1][pPlayerPos->x] != '0' &&
+			Maze[pPlayerPos->y + 1][pPlayerPos->x] != '4')
 		{
 			++pPlayerPos->y;
 		}
@@ -108,7 +114,8 @@ void MoveRight(char Maze[21][21], PPOINT pPlayerPos)
 	if (pPlayerPos->x + 1 < 20)
 	{
 		// 벽인지 체크한다.
-		if (Maze[pPlayerPos->y][pPlayerPos->x+1] != '0')
+		if (Maze[pPlayerPos->y][pPlayerPos->x+1] != '0' &&
+			Maze[pPlayerPos->y][pPlayerPos->x+1] != '4')
 		{
 			++pPlayerPos->x;
 		}
@@ -120,7 +127,8 @@ void MoveLeft(char Maze[21][21], PPOINT pPlayerPos)
 	if (pPlayerPos->x - 1 < 20)
 	{
 		// 벽인지 체크한다.
-		if (Maze[pPlayerPos->y][pPlayerPos->x - 1] != '0')
+		if (Maze[pPlayerPos->y][pPlayerPos->x - 1] != '0' &&
+			Maze[pPlayerPos->y][pPlayerPos->x - 1] != '4')
 		{
 			--pPlayerPos->x;
 		}
@@ -150,6 +158,96 @@ void MovePlayer(char Maze[21][21], PPOINT pPlayerPos, char cInput)
 	}
 }
 
+// 포인터 변수를 const로 생성하면 가리키는 대상의 값을 변경할 수 없다.
+void CreateBomb(char Maze[21][21], const PPOINT pPlayer,
+	PPOINT pBombArr, int* pBombCount)
+{
+	if (*pBombCount == 5)
+		return;
+
+	for (int i = 0; i < *pBombCount; ++i)
+	{
+		if (pPlayer->x == pBombArr[i].x &&
+			pPlayer->y == pBombArr[i].y)
+			return;
+	}
+
+	pBombArr[*pBombCount] = *pPlayer;
+	++(*pBombCount);
+
+	Maze[pPlayer->y][pPlayer->x] = '4';
+}
+
+void Fire(char Maze[21][21], PPOINT pPlayer, PPOINT pBombArr,
+	int* pBombCount)
+{
+	for (int i = 0; i < *pBombCount; ++i)
+	{
+		Maze[pBombArr[i].y][pBombArr[i].x] = '1';
+
+		// 플레이어가 폭탄에 맞았을때 시작점으로 보낸다.
+		if (pPlayer->x == pBombArr[i].x && pPlayer->y == pBombArr[i].y)
+		{
+			pPlayer->x = 0;
+			pPlayer->y = 0;
+		}
+
+		if (pBombArr[i].y - 1 >= 0)
+		{
+			if (Maze[pBombArr[i].y - 1][pBombArr[i].x] == '0')
+				Maze[pBombArr[i].y - 1][pBombArr[i].x] = '1';
+
+			// 플레이어가 폭탄에 맞았을때 시작점으로 보낸다.
+			if (pPlayer->x == pBombArr[i].x && pPlayer->y == pBombArr[i].y - 1)
+			{
+				pPlayer->x = 0;
+				pPlayer->y = 0;
+			}
+		}
+
+		if (pBombArr[i].y + 1 < 20)
+		{
+			if (Maze[pBombArr[i].y + 1][pBombArr[i].x] == '0')
+				Maze[pBombArr[i].y + 1][pBombArr[i].x] = '1';
+
+			// 플레이어가 폭탄에 맞았을때 시작점으로 보낸다.
+			if (pPlayer->x == pBombArr[i].x && pPlayer->y == pBombArr[i].y +1)
+			{
+				pPlayer->x = 0;
+				pPlayer->y = 0;
+			}
+		}
+
+		if (pBombArr[i].x - 1 >= 0)
+		{
+			if (Maze[pBombArr[i].y][pBombArr[i].x - 1] == '0')
+				Maze[pBombArr[i].y][pBombArr[i].x - 1] = '1';
+
+			// 플레이어가 폭탄에 맞았을때 시작점으로 보낸다.
+			if (pPlayer->x == pBombArr[i].x - 1 && pPlayer->y == pBombArr[i].y)
+			{
+				pPlayer->x = 0;
+				pPlayer->y = 0;
+			}
+		}
+
+		if (pBombArr[i].x + 1 < 20)
+		{
+			if (Maze[pBombArr[i].y][pBombArr[i].x + 1] == '0')
+				Maze[pBombArr[i].y][pBombArr[i].x + 1] = '1';
+
+			// 플레이어가 폭탄에 맞았을때 시작점으로 보낸다.
+			if (pPlayer->x == pBombArr[i].x + 1 && pPlayer->y == pBombArr[i].y)
+			{
+				pPlayer->x = 0;
+				pPlayer->y = 0;
+			}
+		}
+	}
+
+	*pBombCount = 0;
+}
+
 int main()
 {
 	// 20 x 20 미로를 만들어준다.
@@ -158,6 +256,10 @@ int main()
 	POINT	tPlayerPos;
 	POINT	tStartPos;
 	POINT	tEndPos;
+
+	int iBombCount = 0;
+
+	POINT	tBombPos[5];
 
 	// 미로를 설정한다.
 	SetMaze(strMaze, &tPlayerPos, &tStartPos, &tEndPos);
@@ -174,13 +276,21 @@ int main()
 			break;
 		}
 
+		cout << "t : 폭탄설치 u : 폭탄 터뜨리기" << endl;
 		cout << "w : 위 s : 아래 a : 왼쪽 d : 오른쪽 q : 종료 : ";
 		char	cInput = _getch();
 
 		if (cInput == 'q' || cInput == 'Q')
 			break;
 
-		MovePlayer(strMaze, &tPlayerPos, cInput);
+		else if (cInput == 't' || cInput == 'T')
+			CreateBomb(strMaze, &tPlayerPos, tBombPos, &iBombCount);
+
+		else if (cInput == 'u' || cInput == 'U')
+			Fire(strMaze, &tPlayerPos, tBombPos, &iBombCount);
+
+		else
+			MovePlayer(strMaze, &tPlayerPos, cInput);
 	}
 
 	return 0;
