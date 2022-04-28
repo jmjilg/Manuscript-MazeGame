@@ -43,12 +43,111 @@ typedef struct _tagPlayer
 	bool		bPushOnOff;
 	bool		bTransparency;
 	int			iBombPower;
-}PLAYER, *PPLAYER;
+}PLAYER, * PPLAYER;
 
 void SetMaze(char Maze[21][21], PPLAYER pPlayer, PPOINT pStartPos,
 	PPOINT pEndPos)
 {
-	pStartPos->x = 0;
+	// MazeList.txt 파일을 읽어와서 미로 목록을 만든다.
+	FILE* pFile = NULL;
+
+	fopen_s(&pFile, "MazeList.txt", "rt");
+
+	char** pMazeList = NULL;
+
+	if (pFile)
+	{
+		char	cCount;
+
+		fread(&cCount, 1, 1, pFile);
+
+		int	iMazeCount = atoi(&cCount);
+
+		fread(&cCount, 1, 1, pFile);
+
+		// char* 배열을 미로 개수만큼 할당한다.
+		pMazeList = new char* [iMazeCount];
+
+		for (int i = 0; i < iMazeCount; ++i)
+		{
+			int iNameCount = 0;
+
+			// 현재 미로의 파일 이름을 저장할 배열을 256개로 할당
+			// 해둔다. 미리 넉넉하게 할당해둔 것이다.
+			pMazeList[i] = new char[256];
+
+			while (true)
+			{
+				fread(&cCount, 1, 1, pFile);
+
+				if (cCount != '\n')
+				{
+					pMazeList[i][iNameCount] = cCount;
+					++iNameCount;
+				}
+
+				else
+					break;
+			}
+
+			// 파일 이름을 모두 읽었다면 문자열의 마지막에 0을
+			// 넣어서 이 문자열의 끝을 알려준다.
+			pMazeList[i][iNameCount] = 0;
+		}
+
+		fclose(pFile);
+
+		// 읽을 파일 목록을 만들어졌으므로 각 파일중 하나를 선택해서
+		// 미로를 읽어와서 설정한다.
+		for (int i = 0; i < iMazeCount; ++i)
+		{
+			cout << i+1<<". " << pMazeList[i] << endl;
+		}
+
+		cout << "미로를 선택하세요 : ";
+		int iSelect;
+		cin >> iSelect;
+
+		// 선택한 미로 파일을 읽는다.
+		fopen_s(&pFile, pMazeList[iSelect - 1], "rt");
+
+		if (pFile)
+		{
+			// 미로의 새로 줄 수만큼 반복하며 각 줄 별로 읽어온다.
+			for (int i = 0; i < 20; ++i)
+			{
+				fread(Maze[i], 1, 20, pFile);
+
+				// 현재 줄의 미로를 검사하여 시작점, 혹은
+				// 도착점이 있는지를 판단한다.
+				for (int j = 0; j < 20; ++j)
+				{
+					// 시작점일 경우
+					if (Maze[i][j] == '2')
+					{
+						pStartPos->x = j;
+						pStartPos->y = i;
+
+						pPlayer->tPos = *pStartPos;
+					}
+
+					// 도착점일 경우
+					else if (Maze[i][j] == '3')
+					{
+						pEndPos->x = j;
+						pEndPos->y = i;
+					}
+				}
+
+				// 개행문자를 읽어온다.
+				fread(&cCount, 1, 1, pFile);
+			}
+
+			fclose(pFile);
+		}
+	}
+
+	/*pStartPos->x = 0;
 	pStartPos->y = 0;
 
 	pEndPos->x = 19;
@@ -56,16 +155,16 @@ void SetMaze(char Maze[21][21], PPLAYER pPlayer, PPOINT pStartPos,
 
 	pPlayer->tPos = *pStartPos;
 
-	strcpy_s(Maze[0],  "21100000000000000000");
-	strcpy_s(Maze[1],  "00111111111100000000");
-	strcpy_s(Maze[2],  "00100010000111111100");
-	strcpy_s(Maze[3],  "01100010000000000100");
-	strcpy_s(Maze[4],  "01000011110001111100");
-	strcpy_s(Maze[5],  "01000000001111000000");
-	strcpy_s(Maze[6],  "01100000001000000000");
-	strcpy_s(Maze[7],  "00100000001111111000");
-	strcpy_s(Maze[8],  "00001110000000001000");
-	strcpy_s(Maze[9],  "01111011111111111000");
+	strcpy_s(Maze[0], "21100000000000000000");
+	strcpy_s(Maze[1], "00111111111100000000");
+	strcpy_s(Maze[2], "00100010000111111100");
+	strcpy_s(Maze[3], "01100010000000000100");
+	strcpy_s(Maze[4], "01000011110001111100");
+	strcpy_s(Maze[5], "01000000001111000000");
+	strcpy_s(Maze[6], "01100000001000000000");
+	strcpy_s(Maze[7], "00100000001111111000");
+	strcpy_s(Maze[8], "00001110000000001000");
+	strcpy_s(Maze[9], "01111011111111111000");
 	strcpy_s(Maze[10], "01000000000000000000");
 	strcpy_s(Maze[11], "01111100111111100000");
 	strcpy_s(Maze[12], "00000111100000111110");
@@ -76,6 +175,7 @@ void SetMaze(char Maze[21][21], PPLAYER pPlayer, PPOINT pStartPos,
 	strcpy_s(Maze[17], "01111110011111000000");
 	strcpy_s(Maze[18], "01000000000001100000");
 	strcpy_s(Maze[19], "11000000000000111113");
+	*/
 }
 
 void Output(char Maze[21][21], PPLAYER pPlayer)
@@ -143,7 +243,7 @@ bool AddItem(char cItemType, PPLAYER pPlayer)
 {
 	if (cItemType == '5')
 	{
-		if(pPlayer->iBombPower<5)
+		if (pPlayer->iBombPower < 5)
 			++pPlayer->iBombPower;
 
 		return true;
@@ -217,7 +317,7 @@ void MoveUp(char Maze[21][21], PPLAYER pPlayer)
 		else if (pPlayer->bTransparency)
 			--pPlayer->tPos.y;
 
-		if(AddItem(Maze[pPlayer->tPos.y][pPlayer->tPos.x], pPlayer))
+		if (AddItem(Maze[pPlayer->tPos.y][pPlayer->tPos.x], pPlayer))
 			Maze[pPlayer->tPos.y][pPlayer->tPos.x] = '1';
 
 	}
@@ -284,8 +384,8 @@ void MoveRight(char Maze[21][21], PPLAYER pPlayer)
 	if (pPlayer->tPos.x + 1 < 20)
 	{
 		// 벽인지 체크한다.
-		if (Maze[pPlayer->tPos.y][pPlayer->tPos.x+1] != '0' &&
-			Maze[pPlayer->tPos.y][pPlayer->tPos.x+1] != '4')
+		if (Maze[pPlayer->tPos.y][pPlayer->tPos.x + 1] != '0' &&
+			Maze[pPlayer->tPos.y][pPlayer->tPos.x + 1] != '4')
 		{
 			++pPlayer->tPos.x;
 		}
@@ -461,13 +561,13 @@ void Fire(char Maze[21][21], PPLAYER pPlayer, PPOINT pBombArr,
 					if (rand() % 100 < 20)
 					{
 						int iPerCent = rand() % 100;
-						if(iPerCent<40)
+						if (iPerCent < 40)
 							Maze[pBombArr[i].y - j][pBombArr[i].x] = '5';
 
 						else if (iPerCent < 70)
 							Maze[pBombArr[i].y - j][pBombArr[i].x] = '6';
 
-						else 
+						else
 							Maze[pBombArr[i].y - j][pBombArr[i].x] = '7';
 					}
 
@@ -594,7 +694,7 @@ int main()
 
 	// 미로를 설정한다.
 	SetMaze(strMaze, &tPlayer, &tStartPos, &tEndPos);
-	
+
 	while (true)
 	{
 		system("cls");
